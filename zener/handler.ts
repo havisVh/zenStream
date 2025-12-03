@@ -21,7 +21,7 @@ async function handler(req: Request): Promise<Response> {
     const decodedPath = decodeURIComponent(filePath);
     if(config.externalPath){
         absolutePath = decodedPath;
-        console.log(absolutePath);
+        
         if(absolutePath.startsWith("/~")){
             absolutePath = absolutePath.replace("/~", "GX");
         }
@@ -31,7 +31,7 @@ async function handler(req: Request): Promise<Response> {
             absolutePath = config.DRIVE_LETTER+":\\"+config.root+absolutePath.substring(1).replaceAll("/","\\");
         }else if(absolutePath.startsWith("GX")){
             absolutePath = "C:\\Users\\"+user+"\\"+config.root+absolutePath.replace("GX", "").replaceAll("/","\\");
-            console.log(absolutePath);
+            
         }
     }else{
         absolutePath = join(Deno.cwd(),config.root, decodedPath);
