@@ -1,0 +1,7 @@
+{
+    "port":2630,
+    "root":"/Videos/",
+    "externalPath":true,
+    "DRIVE_LETTER":"E",
+    "hostname":"127.0.0.1"
+}
