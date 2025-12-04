@@ -36,3 +36,16 @@ Explanation:
 - externalPath is set to `true` here, which means Deno will now assume the files are not stored in the Current Working Directory.
 - root -- the root in this config is set from the very root of the external path, as in the `DRIVE_LETTER` defines the HardDrive (or partition) and `root` is the address from there.
 - here `root` is set to be `"/Videos/"` and `DRIVE_LETTER` is set to be `"E"`, which means the path from deno will serve the files will be `"E:/Videos/"`
+
+
+### to Run the Server!
+
+to run the server simply use,
+
+`deno run -A main.ts`
+
+> [!NOTE]
+> the `-A` flag is used to allow all permissions to the server, from files to network discovery and such. Please refer to Deno documentation to [learn more](https://docs.deno.com/runtime/fundamentals/security/)
+
+> [!TIP]
+> Additionally you can use flags like `--watch` or `--watch-hmr` to update the runtime to reflect changes without needing manual restart, learn more [here](https://docs.deno.com/runtime/getting_started/command_line_interface/#watch-mode)
