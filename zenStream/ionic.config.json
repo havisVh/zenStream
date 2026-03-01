@@ -1,0 +1,7 @@
+{
+  "name": "zenStream",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

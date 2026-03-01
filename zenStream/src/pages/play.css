@@ -1,0 +1,16 @@
+.FullWidth {
+  width: 100vw;
+}
+
+.FullHeight {
+  height: 100vh;
+}
+
+.Player{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    user-select: none;
+    cursor:pointer
+}

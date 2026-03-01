@@ -14,9 +14,50 @@ async function handler(req: Request): Promise<Response> {
         return apiHandler({
             requestPath: filePath,
             method: req.method,
+            request: req,
+            headers: req.headers,
         });
     }
+    if (filePath.startsWith('/stream/')){
+        const streamPath = filePath.replace('/stream/', '');
+        if(!config.useSeparatePathForProcessing){
+        const absoluteStreamPath = join(Deno.cwd(), config.root, streamPath);
+        console.log(`Serving stream file: ${absoluteStreamPath}`);
+        try {
+            const fileInfo = await Deno.stat(absoluteStreamPath);
+            if(fileInfo.isDirectory){
+                return new Response("Directory listing is not allowed", { status: 403 });
+            }
+            return await serveFile(req, absoluteStreamPath);
+        } catch (error) {
+            if (error instanceof Deno.errors.NotFound) {
+                return new Response("File not found", { status: 404 });
+            }
+            return new Response("Internal Server Error", { status: 500 });
+        }
+    }else{
+        const absoluteStreamPath = join(config.processPath, streamPath);
+        console.log(`Serving stream file: ${absoluteStreamPath}`);
+        try{
+            const fileInfo = await Deno.stat(absoluteStreamPath);
+            if(fileInfo.isDirectory){
+                return new Response("Directory listing is not allowed", { status: 403 });
+            }
+            return await serveFile(req, absoluteStreamPath);
+        }catch(error){
+            if (error instanceof Deno.errors.NotFound) {
+                return new Response("File not found", { status: 404 });
+            }
+            return new Response("Internal Server Error", { status: 500 });
+        }
+    }
+    }
     
+    if(filePath === "/ping"){
+        console.log("Received ping request");
+        return new Response("pong", { status: 200 });
+    }
+
     let absolutePath = "";
     const decodedPath = decodeURIComponent(filePath);
     if(config.externalPath){
