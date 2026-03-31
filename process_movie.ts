@@ -14,7 +14,7 @@ const outputDir = join(Deno.cwd(), "hls_output", movieID);
 console.log(`Starting conversion for: ${inputPath}`);
 console.log(`Output directory: ${outputDir}`);
 
-const result = await convert2HLS(inputPath, outputDir);
+const result = await convert2HLS(inputPath, outputDir, movieID);
 
 if (result.status) {
   console.log("Conversion successful!");

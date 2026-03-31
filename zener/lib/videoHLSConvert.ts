@@ -1,7 +1,88 @@
 import { Semaphore } from "https://deno.land/x/semaphore@v1.1.2/mod.ts";
 import { probeMedia } from "./zenDecoder.ts";
 
-const convert2HLS = async (inputPath: string, outputDir: string) => {
+const generateManifest = async (outputDir: string, movieID: string, strategy: any) => {
+  const manifest = {
+    movie_title: movieID,
+    movie_id: movieID,
+    num_streams_a: strategy.audio.length,
+    num_streams_v: 1,
+    num_streams_s: 0,
+    duration: strategy.duration,
+    streams: [
+      {
+        streamType: "video",
+        streamId: crypto.randomUUID(),
+        codec: strategy.video.codec,
+        resolution: strategy.video.resolution,
+        playlist: "master.m3u8"
+      },
+      ...strategy.audio.map((track: any, index: number) => ({
+        streamType: "audio",
+        streamId: crypto.randomUUID(),
+        streamName: track.title,
+        codec: "aac",
+        channels: 2,
+        language: track.language,
+        playlist: `audio_${index}.m3u8`
+      }))
+    ]
+  };
+
+  await Deno.writeTextFile(`${outputDir}/video_manifest.json`, JSON.stringify(manifest, null, 4));
+};
+
+const generateTestPlayer = async (outputDir: string) => {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+    <title>ZenStream Test Player</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        video { width: 80%; max-width: 900px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); border: 1px solid #1e293b; }
+        .controls { margin-top: 20px; display: flex; gap: 10px; }
+        select { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>ZenStream HLS Test Player</h1>
+    <video id="video" controls></video>
+    <div class="controls">
+        <label>Audio Track:</label>
+        <select id="audioTracks"></select>
+    </div>
+    <script>
+        const video = document.getElementById('video');
+        const audioSelect = document.getElementById('audioTracks');
+        const source = 'master.m3u8';
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(source);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                const tracks = hls.audioTracks;
+                audioSelect.innerHTML = tracks.map((t, i) => \`<option value="\${i}">\${t.name} (\${t.lang})</option>\`).join('');
+                video.play();
+            });
+            audioSelect.onchange = () => {
+                hls.audioTrack = parseInt(audioSelect.value);
+            };
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = source;
+            video.addEventListener('loadedmetadata', function() {
+                video.play();
+            });
+        }
+    </script>
+</body>
+</html>`;
+
+  await Deno.writeTextFile(`${outputDir}/test_player.html`, html);
+};
+
+const convert2HLS = async (inputPath: string, outputDir: string, movieID: string) => {
   // Safe-Mode: Use all but one CPU core to keep the PC responsive
   const hardwareCores = (navigator as any).hardwareConcurrency || 4;
   const concurrency = Math.max(1, hardwareCores - 1);
@@ -63,29 +144,28 @@ const convert2HLS = async (inputPath: string, outputDir: string) => {
     }
     chunks.sort();
 
-    // --- 3. PARALLEL CONVERSION (Extract Video and Audio separately for HLS) ---
+    // --- 3. PARALLEL CONVERSION (Consolidated Single-Pass extraction) ---
     console.log(`Processing ${chunks.length} chunks with ${concurrency} workers...`);
     const tasks = chunks.map(async (chunk, index) => {
       const release = await sem.acquire();
       try {
-        // 3a. Extract Video TS
-        const videoCmd = new Deno.Command(targetBinary, {
-          args: ["-i", `${outputDir}/${chunk}`, "-map", "0:v:0", "-c", "copy", "-f", "mpegts", `${outputDir}/video_${index}.ts`],
-        });
-        await videoCmd.output();
-
-        // 3b. Extract Audio TS for each track (Transcode if needed)
+        const chunkArgs = ["-y", "-nostats", "-i", `${outputDir}/${chunk}`, "-threads", "1"];
+        
+        // Map Video
+        chunkArgs.push("-map", "0:v:0", "-c:v", "copy", "-f", "mpegts", `${outputDir}/video_${index}.ts`);
+        
+        // Map all Audio tracks
         for (let a = 0; a < audioTracks.length; a++) {
             const track = audioTracks[a];
-            const audioArgs = track.shouldCopy 
+            const audioCodec = track.shouldCopy 
                 ? ["-c:a", "copy"] 
                 : ["-c:a", "aac", "-b:a", "192k", "-ac", "2"];
             
-            const audioCmd = new Deno.Command(targetBinary, {
-                args: ["-i", `${outputDir}/${chunk}`, "-map", `0:a:${a}`, ...audioArgs, "-f", "mpegts", `${outputDir}/audio_${a}_${index}.ts`],
-            });
-            await audioCmd.output();
+            chunkArgs.push("-map", `0:a:${a}`, ...audioCodec, "-f", "mpegts", `${outputDir}/audio_${a}_${index}.ts`);
         }
+
+        const chunkCmd = new Deno.Command(targetBinary, { args: chunkArgs });
+        await chunkCmd.output();
 
         await Deno.remove(`${outputDir}/${chunk}`);
       } finally {
@@ -140,6 +220,11 @@ const convert2HLS = async (inputPath: string, outputDir: string) => {
     });
     masterContent += `\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,CODECS="${codecStr}",AUDIO="audio"\nvideo.m3u8\n`;
     await Deno.writeTextFile(`${outputDir}/master.m3u8`, masterContent);
+
+    // --- 5. MANIFEST & TEST PLAYER ---
+    console.log("Generating Manifest and Test Player...");
+    await generateManifest(outputDir, movieID, strategy);
+    await generateTestPlayer(outputDir);
 
     // Cleanup
     console.log("Cleaning up temporary files...");
