@@ -3,6 +3,8 @@ interface StreamInfo {
   index: number;
   codec_name: string;
   channels?: number;
+  width?: number;
+  height?: number;
   tags?: Record<string, string>;
 }
 
@@ -20,11 +22,13 @@ interface MediaStrategy {
     index: number;
     codec: string;
     shouldCopy: boolean;
+    resolution: string;
   };
   audio: AudioStrategy[];
+  duration: number;
 }
 
-const getMediaStrategy = (streams: StreamInfo[]): MediaStrategy => {
+const getMediaStrategy = (streams: StreamInfo[], format: any): MediaStrategy => {
   const videoStream = streams.find((s) => s.codec_name === "h264" || s.codec_name === "hevc" || s.codec_name === "vp9") || 
                       streams.find((s) => s.codec_name === "video") || 
                       streams[0];
@@ -34,6 +38,9 @@ const getMediaStrategy = (streams: StreamInfo[]): MediaStrategy => {
   if (!videoStream || audioStreams.length === 0) {
     throw new Error("Could not find valid video or audio streams.");
   }
+
+  const duration = parseFloat(format.duration) || 0;
+  const resolution = videoStream.width ? `${videoStream.width}x${videoStream.height}` : "unknown";
 
   const audioStrategies: AudioStrategy[] = audioStreams.map((s, idx) => {
     const lang = s.tags?.language || "und";
@@ -53,8 +60,10 @@ const getMediaStrategy = (streams: StreamInfo[]): MediaStrategy => {
       index: videoStream.index,
       codec: videoStream.codec_name,
       shouldCopy: true,
+      resolution,
     },
     audio: audioStrategies,
+    duration,
   };
 };
 
@@ -81,7 +90,7 @@ const probeMedia = async (inputPath: string): Promise<MediaStrategy> => {
       "-v",
       "error",
       "-show_entries",
-      "stream=index,codec_name,channels:stream_tags=language,title",
+      "format=duration:stream=index,codec_name,channels,width,height:stream_tags=language,title",
       "-of",
       "json",
       inputPath,
@@ -95,7 +104,7 @@ const probeMedia = async (inputPath: string): Promise<MediaStrategy> => {
   }
 
   const data = JSON.parse(decoder.decode(stdout));
-  return getMediaStrategy(data.streams || []);
+  return getMediaStrategy(data.streams || [], data.format || {});
 };
 
 export { probeMedia, getMediaStrategy };
