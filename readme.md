@@ -2,6 +2,12 @@
 
 ## An usable File Stream Server using Deno!
 
+
+### PRE-REQUISITES
+- Deno --latest
+- NodeJS --latest
+- Ollama (optional --with any LLMs (like gemma, or Quen //make sure to update it in the zenconfig.json)
+
 ### Zen Config JSON file
 This file is used to simplify zenStream Server usage
 
