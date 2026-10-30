@@ -6,11 +6,9 @@ import { IonContent, IonPage, IonIcon } from "@ionic/react";
 import { play } from "ionicons/icons";
 import {HSAP, HSAPElementSettings, IntersectionProp} from "../lib/Hsap.ts";
 import { getAccentColor, rgbToHex } from "../lib/colors.ts";
-
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const TvDash = () => {
-
-
   const [online, setOnline] = useState(false);
   const [dominantColor, setDominantColor] = useState("#000000");
   const [palette, setPalette] = useState(["#000000"]);
@@ -25,9 +23,6 @@ const TvDash = () => {
     language: "Telugu",
   });
 
-  // https://media.themoviedb.org/t/p/w1066_and_h600_face/wN0epLoxu8pbvde68M9IZG5T8eD.jpg
-  // https://media.themoviedb.org/t/p/w1066_and_h600_face/nlPCdZlHtRNcF6C9hzUH4ebmV1w.jpg
-  // https://media.themoviedb.org/t/p/w1920_and_h1080_face/eDE3JmkTD50IEhStg7uWUpLBMiL.jpg
   const [imgUrl, setImgUrl] = useState(
     "https://image.tmdb.org/t/p/w1920_and_h1080_face/wN0epLoxu8pbvde68M9IZG5T8eD.jpg",
   );
@@ -49,8 +44,7 @@ const TvDash = () => {
     };
 
     const hsap = new HSAP(hsapSettings, intersectionProp);
-  }
-  ,[]);
+  }, []);
 
   useEffect(() => {
     const serverConnect = new ServerConnect();
@@ -79,11 +73,7 @@ const TvDash = () => {
       });
     processImage(imgUrl)
       .then((colors) => {
-
-        // setDominantColor(colors.accentColor);
         setPalette(colors.palette);
-        console.log("Extracted Colors:", colors);
-
         setCSSVariables("--accentColor", colors.accentColor);
         setCSSVariables("--accentHeader", colors.accentColor + "24");
         colors.palette.forEach((color, index) => {
@@ -100,12 +90,10 @@ const TvDash = () => {
     serverConnect
       .getUserData()
       .then((res) => {
-        // console.log("User Data:", res);
         setUserData(res);
         serverConnect
           .getMovieData(userData.lastPlayed)
           .then((res) => {
-            // console.log("Movie Data:", res);
             setMovieData(res);
             setImgUrl(res.backdrop);
           })
@@ -127,11 +115,11 @@ const TvDash = () => {
   return (
     <IonPage>
       <IonContent fullscreen className="ion-no-padding">
-        
         <div
           className="Header"
-          style={{ color: "white", backdropFilter: "blur(10px)" }}
+          style={{ backdropFilter: "blur(10px)" }}
         >
+          <ThemeToggle />
           <h1 id="appTitle" style={{ fontSize: "48px" }}>
             zen
             <span style={{ fontWeight: "bold", fontFamily: "Inter_I" }}>

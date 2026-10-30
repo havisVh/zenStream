@@ -28,33 +28,36 @@ import '@ionic/react/css/display.css';
  */
 
 /* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
+import '@ionic/react/css/palettes/dark.class.css';
+/* import '@ionic/react/css/palettes/dark.system.css'; */
 
 /* Theme variables */
 import './theme/variables.css';
+import { ThemeProvider } from './lib/ThemeContext';
 
 setupIonicReact();
 
 const App: React.FC = () => (
-  <IonApp>
-    <IonReactRouter>
-      <IonRouterOutlet>
-        <Route exact path="/">
-          <Home />
-        </Route>
-        <Route exact path="/home">
-          <TvDash />
-        </Route>
-        <Route exact path="/play">
-          <Redirect to="/" />
-        </Route>
-        <Route path="/play/:mediaId">
-          <Player />
-        </Route>
-      </IonRouterOutlet>
-    </IonReactRouter>
-  </IonApp>
+  <ThemeProvider>
+    <IonApp>
+      <IonReactRouter>
+        <IonRouterOutlet>
+          <Route exact path="/">
+            <Home />
+          </Route>
+          <Route exact path="/home">
+            <TvDash />
+          </Route>
+          <Route exact path="/play">
+            <Redirect to="/" />
+          </Route>
+          <Route path="/play/:mediaId">
+            <Player />
+          </Route>
+        </IonRouterOutlet>
+      </IonReactRouter>
+    </IonApp>
+  </ThemeProvider>
 );
 
 export default App;

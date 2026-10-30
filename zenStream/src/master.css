@@ -243,3 +243,37 @@ html{
         transform: translateY(0);
     }
 }
+
+
+/* Light Mode Overrides */
+[data-theme="light"] {
+    --ion-background-color: #f8fafc;
+    --ion-text-color: #0f172a;
+}
+
+[data-theme="light"] .masterContainer {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+[data-theme="light"] .Header {
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .Header #appTitle {
+    color: #0f172a;
+}
+
+[data-theme="light"] .ContinueWatchingSection {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-top: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .statusIndicator {
+    background: rgba(255, 255, 255, 0.7);
+    color: #0f172a;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
